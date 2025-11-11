@@ -1,13 +1,6 @@
-import React from 'react'
-import { View } from 'react-native'
-import HomePage from '../FoodApp/LandingPage.tsx/HomePage'
+import React from 'react';
+import Login from '../FoodApp/Login';
 
-const index = () => {
-  return (
-    <View>
-      <HomePage/>
-    </View>
-  )
+export default function IndexScreen() {
+  return <Login />;
 }
-
-export default index

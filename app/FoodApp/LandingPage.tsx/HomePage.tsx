@@ -1,21 +1,87 @@
 import React from 'react';
 import {
-    Image,
-    ImageBackground,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ImageBackground,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Swiper from 'react-native-swiper';
+
+const FOOD_SLIDES = [
+    {
+        title: 'GRILLED CHICKEN',
+        subtitle: 'THE CHICKEN EXPERTS',
+        description: 'Experience the best-in-class flavor with our signature grilled chicken. Juicy, tender, and perfectly seasoned.',
+        imageUri: 'https://i.ibb.co/PzDDSKf0/old-wall-red-brick-wall-antique-texture-dark-brown-and-red-brick-wall-backgorund-image-photo.webp',
+        productImage: require('@/assets/images/chicken1.png'),
+        specialColor: '#FFD700',
+    },
+    {
+        title: 'SPICY WINGS',
+        subtitle: 'HOT & CRUNCHY',
+        description: 'Our fiery wings are marinated in a secret blend of spices. Perfect for a kick!',
+        imageUri: 'https://i.ibb.co/PzDDSKf0/old-wall-red-brick-wall-antique-texture-dark-brown-and-red-brick-wall-backgorund-image-photo.webp',
+        productImage: require('@/assets/images/wings.png'),
+        specialColor: '#FF4500',
+    },
+    {
+        title: 'VEGGIE BURGER',
+        subtitle: 'HEALTHY CHOICE',
+        description: 'A gourmet vegetarian option, packed with fresh vegetables and homemade sauce.',
+        imageUri: 'https://i.ibb.co/PzDDSKf0/old-wall-red-brick-wall-antique-texture-dark-brown-and-red-brick-wall-backgorund-image-photo.webp',
+        productImage: require('@/assets/images/burg.png'),
+        specialColor: '#3CB371',
+    },
+];
+
+const SlideContent = ({ slide }) => (
+    <ImageBackground
+        source={{ uri: slide.imageUri }}
+        style={styles.header} 
+        imageStyle={styles.backgroundImage}>
+
+        <View style={styles.overlay} />
+
+        <View style={styles.contentBox}>
+            <Text style={[styles.special, { color: slide.specialColor }]}>
+                {slide.subtitle}
+            </Text>
+            <Text style={styles.delicious}>DELICIOUS</Text>
+            <Text style={styles.grilled}>{slide.title}</Text>
+
+            <Text style={styles.subHeading}>FRESHLY COOKED & SMOKED</Text>
+
+            <Text style={styles.description}>
+                {slide.description}
+            </Text>
+
+            <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.shopBtn}>
+                    <Text style={styles.btnText}>ORDER NOW</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+
+        <Image
+            source={slide.productImage}
+            style={styles.productImage} 
+        />
+    </ImageBackground>
+);
+
+const Slide = ({ slide }) => {
+    return <SlideContent slide={slide} />;
+};
+
 
 export default function HomePage() {
   return (
     <SafeAreaView style={styles.container}>
-      {/* --- Top Navigation Bar --- */}
       <View style={styles.navBar}>
         <View style={styles.navLinks}>
           <Text style={[styles.navText, styles.navTextActive]}>Home</Text>
@@ -27,8 +93,8 @@ export default function HomePage() {
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor="#888"
+            placeholder={Platform.OS === 'web' ? "Search for dishes..." : "Search..."}
+            placeholderTextColor="#bbbbbb"
           />
         </View>
 
@@ -42,136 +108,204 @@ export default function HomePage() {
         </View>
       </View>
 
-      {/* --- Main Content --- */}
-      <ScrollView>
-        {/* Background Section */}
-        <ImageBackground
-          source={{
-            uri: 'https://i.ibb.co/PzDDSKf0/old-wall-red-brick-wall-antique-texture-dark-brown-and-red-brick-wall-backgorund-image-photo.webp',
-          }}
-          style={styles.header}
-          imageStyle={styles.backgroundImage}>
-          <View style={styles.contentBox}>
-            <Text style={styles.special}>SPECIAL</Text>
-            <Text style={styles.delicious}>DELICIOUS</Text>
-            <Text style={styles.grilled}>Grilled Chicken</Text>
-
-            <Text style={styles.subHeading}>LANDING PAGE</Text>
-
-            <Text style={styles.description}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore.
-            </Text>
-
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.shopBtn}>
-                <Text style={styles.btnText}>SHOP NOW</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Chicken Image */}
-          <Image
-            source={require('@/assets/images/chicken1.png')} // Make sure this path is correct
-            style={styles.chicken}
-          />
-        </ImageBackground>
-      </ScrollView>
+      <View style={{ flex: 1 }}>
+        <Swiper 
+          style={{}} 
+          loop={true} 
+          showsButtons={false} 
+          showsPagination={true} 
+          activeDotColor="#FF8A00" 
+          dotColor="rgba(255, 255, 255, 0.5)"
+          paginationStyle={{ bottom: 15 }} 
+        >
+          {FOOD_SLIDES.map((slide, index) => (
+              <Slide key={index} slide={slide} />
+          ))}
+        </Swiper>
+      </View>
+      
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  // --- Layout & Nav Styles ---
   container: {
-    flex: 1,
+    flex: 1, 
     backgroundColor: '#1a1a1a',
-    paddingTop: Platform.OS === 'android' ? 25 : 0,
   },
   navBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 15,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#101010',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333333',
+    ...Platform.select({
+        web: { 
+            paddingHorizontal: 25,
+            paddingVertical: 18,
+        },
+        default: { 
+            paddingHorizontal: 10,
+            paddingVertical: 15,
+        }
+    })
   },
   navLinks: {
     flexDirection: 'row',
-    gap: 12,
-    flex: 1.5,
+    ...Platform.select({
+        web: { gap: 20, flex: 2 },
+        default: { gap: 10, flex: 2 }
+    })
   },
   navText: {
-    color: 'white',
-    fontSize: 15,
+    color: '#e0e0e0',
+    fontWeight: '500',
+    ...Platform.select({
+        web: { fontSize: 16, letterSpacing: 0.5 },
+        default: { fontSize: 12 }
+    })
   },
   navTextActive: {
-    fontWeight: 'bold',
+    color: '#FF8A00',
+    fontWeight: '700',
   },
   searchContainer: {
-    flex: 1.5,
-    marginHorizontal: 10,
+    flex: 1,
   },
   searchInput: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    backgroundColor: '#282828',
+    color: 'white',
+    borderRadius: 25,
     fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#444444',
+    ...Platform.select({
+        web: {
+            paddingHorizontal: 20,
+            paddingVertical: 10,
+        },
+        default: {
+            paddingHorizontal: 15,
+            paddingVertical: 8,
+        }
+    })
   },
   authLinks: {
     flexDirection: 'row',
-    gap: 12,
-    flex: 1,
+    flex: 1.2,
     justifyContent: 'flex-end',
+    ...Platform.select({
+        web: { gap: 15 },
+        default: { gap: 8 }
+    })
   },
-
-  // --- Header & Content Styles ---
   header: {
+    flex: 1, 
     width: '100%',
-    height: 480,
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 40,
     position: 'relative',
-    backgroundColor: '#0b3c4c', // Fallback color
+    backgroundColor: '#0b3c4c', 
+    ...Platform.select({
+        web: { 
+            justifyContent: 'center',
+            paddingHorizontal: 60,
+        },
+        default: { 
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            paddingHorizontal: 20,
+            paddingTop: 30,
+            paddingBottom: 20,
+        }
+    })
   },
   backgroundImage: {
     objectFit: 'cover',
+    opacity: 0.7,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   contentBox: {
-    width: '60%',
+    zIndex: 10,
+    ...Platform.select({
+        web: { 
+            width: '50%',
+            alignItems: 'flex-start',
+        },
+        default: { 
+            width: '100%',
+            alignItems: 'center',
+        }
+    })
   },
   special: {
-    color: '#FF8A00',
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 5,
-  },
-  delicious: {
-    color: '#FF8A00',
-    fontSize: 30,
     fontWeight: '800',
     marginBottom: 5,
+    letterSpacing: 2,
+    ...Platform.select({
+        web: { fontSize: 18 },
+        default: { fontSize: 16 }
+    })
+  },
+  delicious: {
+    color: 'white',
+    fontWeight: '900',
+    marginBottom: 0,
+    letterSpacing: 1,
+    ...Platform.select({
+        web: { fontSize: 40 },
+        default: { fontSize: 30 }
+    })
   },
   grilled: {
     color: 'white',
-    fontSize: 48,
     fontWeight: '900',
     fontStyle: 'italic',
-    marginBottom: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 5,
+    ...Platform.select({
+        web: { 
+            fontSize: 60, 
+            marginBottom: 30,
+            textAlign: 'left'
+        },
+        default: { 
+            fontSize: 48, 
+            marginBottom: 20,
+            textAlign: 'center'
+        }
+    })
   },
   subHeading: {
-    color: 'white',
-    fontSize: 20,
+    color: '#FF8A00',
     fontWeight: '700',
-    marginBottom: 10,
+    marginBottom: 15,
+    letterSpacing: 1,
+    ...Platform.select({
+        web: { fontSize: 20, textAlign: 'left' },
+        default: { fontSize: 18, textAlign: 'center' }
+    })
   },
   description: {
-    color: 'white',
-    fontSize: 15,
-    width: '70%',
-    marginBottom: 25,
+    color: '#f0f0f0',
+    width: '90%',
+    ...Platform.select({
+        web: {
+            fontSize: 16,
+            marginBottom: 40,
+            lineHeight: 24,
+            textAlign: 'left',
+        },
+        default: {
+            fontSize: 15,
+            marginBottom: 30,
+            lineHeight: 22,
+            textAlign: 'center',
+        }
+    })
   },
   buttonRow: {
     flexDirection: 'row',
@@ -180,24 +314,55 @@ const styles = StyleSheet.create({
   },
   shopBtn: {
     backgroundColor: '#FF8A00',
-    paddingVertical: 14,
-    paddingHorizontal: 25,
-    borderRadius: 10,
+    borderRadius: 8,
+    shadowColor: '#FF8A00',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.6,
+    shadowRadius: 5,
+    elevation: 10,
+    ...Platform.select({
+        web: {
+            paddingVertical: 16,
+            paddingHorizontal: 35,
+        },
+        default: {
+            paddingVertical: 14,
+            paddingHorizontal: 30,
+        }
+    })
   },
   btnText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 1,
+    ...Platform.select({
+        web: { fontSize: 18 },
+        default: { fontSize: 16 }
+    })
   },
-  chicken: {
-    position: 'absolute',
-    width: 350,
-    height: 350,
-    resizeMode: 'contain',
-    pointerEvents: 'none',
-    // --- Centering styles ---
-    top: '50%',
-    left: '50%',
-    transform: [{ translateY: -175 }, { translateX: -175 }],
+  productImage: {
+    ...Platform.select({
+        web: { 
+            position: 'absolute',
+            width: 450,
+            height: 450,
+            resizeMode: 'contain',
+            pointerEvents: 'none',
+            zIndex: 5,
+            top: '55%',
+            left: '60%',
+            transform: [
+                { translateY: -225 },
+                { translateX: -100 }
+            ],
+        },
+        default: { 
+            width: '90%',
+            height: 250,
+            resizeMode: 'contain',
+            zIndex: 5,
+            marginTop: 20,
+        }
+    })
   },
 });

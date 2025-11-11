@@ -4,7 +4,7 @@ import { Text, View } from 'react-native'
 const Login = () => {
   return (
     <View>
-      <Text>Login</Text>
+      <Text>Login nfjnijnjvknvjvnfvnn</Text>
     </View>
   )
 }
