@@ -16,6 +16,13 @@ export default function RootLayout() {
           title: 'Modal Page' 
         }} 
       />
+      <Stack.Screen 
+        name="FoodApp/AllItems" 
+        options={{ 
+          headerShown: false,
+          title: 'Menu Items', 
+        }} 
+      />
     </Stack>
   );
 }

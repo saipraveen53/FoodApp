@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   Image,
@@ -5,12 +6,12 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Swiper from 'react-native-swiper';
+import NavBar from '../components/NavBar';
 
 const FOOD_SLIDES = [
     {
@@ -39,7 +40,7 @@ const FOOD_SLIDES = [
     },
 ];
 
-const SlideContent = ({ slide }) => (
+const SlideContent = ({ slide, onOrderPress }) => (
     <ImageBackground
         source={{ uri: slide.imageUri }}
         style={styles.header} 
@@ -61,7 +62,7 @@ const SlideContent = ({ slide }) => (
             </Text>
 
             <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.shopBtn}>
+                <TouchableOpacity style={styles.shopBtn} onPress={onOrderPress}> 
                     <Text style={styles.btnText}>ORDER NOW</Text>
                 </TouchableOpacity>
             </View>
@@ -74,39 +75,22 @@ const SlideContent = ({ slide }) => (
     </ImageBackground>
 );
 
-const Slide = ({ slide }) => {
-    return <SlideContent slide={slide} />;
+const Slide = ({ slide, onOrderPress }) => {
+    return <SlideContent slide={slide} onOrderPress={onOrderPress} />;
 };
 
 
 export default function HomePage() {
+  const router = useRouter();
+
+  const handleOrderPress = () => {
+    router.push('/FoodApp/AllItems');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.navBar}>
-        <View style={styles.navLinks}>
-          <Text style={[styles.navText, styles.navTextActive]}>Home</Text>
-          <Text style={styles.navText}>Gallery</Text>
-          <Text style={styles.navText}>Shop</Text>
-          <Text style={styles.navText}>Contact</Text>
-        </View>
-
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={Platform.OS === 'web' ? "Search for dishes..." : "Search..."}
-            placeholderTextColor="#bbbbbb"
-          />
-        </View>
-
-        <View style={styles.authLinks}>
-          <TouchableOpacity>
-            <Text style={styles.navText}>Sign Up</Text>
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <Text style={styles.navText}>Login</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      
+      <NavBar activeScreen='Home' />
 
       <View style={{ flex: 1 }}>
         <Swiper 
@@ -119,7 +103,11 @@ export default function HomePage() {
           paginationStyle={{ bottom: 15 }} 
         >
           {FOOD_SLIDES.map((slide, index) => (
-              <Slide key={index} slide={slide} />
+              <Slide 
+                  key={index} 
+                  slide={slide} 
+                  onOrderPress={handleOrderPress} 
+              />
           ))}
         </Swiper>
       </View>
@@ -132,73 +120,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1, 
     backgroundColor: '#1a1a1a',
-  },
-  navBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#101010',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333333',
-    ...Platform.select({
-        web: { 
-            paddingHorizontal: 25,
-            paddingVertical: 18,
-        },
-        default: { 
-            paddingHorizontal: 10,
-            paddingVertical: 15,
-        }
-    })
-  },
-  navLinks: {
-    flexDirection: 'row',
-    ...Platform.select({
-        web: { gap: 20, flex: 2 },
-        default: { gap: 10, flex: 2 }
-    })
-  },
-  navText: {
-    color: '#e0e0e0',
-    fontWeight: '500',
-    ...Platform.select({
-        web: { fontSize: 16, letterSpacing: 0.5 },
-        default: { fontSize: 12 }
-    })
-  },
-  navTextActive: {
-    color: '#FF8A00',
-    fontWeight: '700',
-  },
-  searchContainer: {
-    flex: 1,
-  },
-  searchInput: {
-    backgroundColor: '#282828',
-    color: 'white',
-    borderRadius: 25,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: '#444444',
-    ...Platform.select({
-        web: {
-            paddingHorizontal: 20,
-            paddingVertical: 10,
-        },
-        default: {
-            paddingHorizontal: 15,
-            paddingVertical: 8,
-        }
-    })
-  },
-  authLinks: {
-    flexDirection: 'row',
-    flex: 1.2,
-    justifyContent: 'flex-end',
-    ...Platform.select({
-        web: { gap: 15 },
-        default: { gap: 8 }
-    })
   },
   header: {
     flex: 1, 
