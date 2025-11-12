@@ -63,12 +63,10 @@ const SlideContent = ({ slide, onOrderPress }) => (
                 {slide.description}
             </Text>
 
-            {/* * We only render the button here for the web layout.
-              * On mobile, it will be rendered AFTER the image.
-              */}
+            {/* FIXED: Added onPress handler for Web */}
             {Platform.OS === 'web' && (
                 <View style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.shopBtn}>
+                    <TouchableOpacity style={styles.shopBtn} onPress={onOrderPress}>
                         <Text style={styles.btnText}>ORDER NOW</Text>
                     </TouchableOpacity>
                 </View>
@@ -80,12 +78,10 @@ const SlideContent = ({ slide, onOrderPress }) => (
             style={styles.productImage} 
         />
 
-        {/* * We render the button here ONLY for mobile (Platform.OS !== 'web').
-          * This places it below the image in the vertical flow.
-          */}
+        {/* FIXED: Added onPress handler for Mobile */}
         {Platform.OS !== 'web' && (
             <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.shopBtn}>
+                <TouchableOpacity style={styles.shopBtn} onPress={onOrderPress}>
                     <Text style={styles.btnText}>ORDER NOW</Text>
                 </TouchableOpacity>
             </View>
@@ -102,6 +98,7 @@ export default function HomePage() {
   const router = useRouter();
 
   const handleOrderPress = () => {
+    // This is the navigation function
     router.push('/FoodApp/AllItems');
   };
 
@@ -126,6 +123,7 @@ export default function HomePage() {
               <Slide 
                   key={index} 
                   slide={slide} 
+                  // FIXED: Passing the handler down
                   onOrderPress={handleOrderPress} 
               />
           ))}
