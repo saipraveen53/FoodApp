@@ -1,6 +1,6 @@
 import React from 'react';
-import Login from '../FoodApp/Login';
+import HomePage from '../FoodApp/LandingPage.tsx/HomePage';
 
 export default function IndexScreen() {
-  return <Login />;
+  return <HomePage />;
 }
