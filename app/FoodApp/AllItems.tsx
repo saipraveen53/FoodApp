@@ -77,9 +77,8 @@ const styles = StyleSheet.create({
 });
 
 const imageBase = {
-  // Optimized image size for web/mobile card header
   width: Platform.OS === 'web' ? '100%' : 120,
-  height: Platform.OS === 'web' ? 160 : 120, // Slightly reduced height for better ratio on web
+  height: Platform.OS === 'web' ? 160 : 120,
   resizeMode: 'cover',
   borderRadius: Platform.OS === 'web' ? 0 : 12,
   borderBottomLeftRadius: Platform.OS === 'web' ? 0 : 0,
@@ -92,7 +91,6 @@ const itemStyles = StyleSheet.create({
     backgroundColor: '#2a2a2a',
     borderRadius: 12,
     marginBottom: 16,
-    // Mobile: row layout (image left, text right); Web: column layout (image top, text bottom)
     flexDirection: Platform.OS === 'web' ? 'column' : 'row',
     elevation: 5,
     shadowColor: '#000',
@@ -102,14 +100,12 @@ const itemStyles = StyleSheet.create({
     flex: Platform.OS === 'web' ? 0.5 : 1, 
     margin: Platform.OS === 'web' ? 8 : 0,
     overflow: 'hidden',
-    // Added min/max height for uniform look on web
     ...Platform.select({
         web: { minHeight: 380, maxHeight: 400 },
     })
   },
   image: {
     ...imageBase,
-    // Web-specific border radius for the top of the card
     ...Platform.select({
         web: {
             borderTopLeftRadius: 12,
@@ -147,7 +143,7 @@ const itemStyles = StyleSheet.create({
     color: 'white',
   },
   fallbackName: {
-    fontSize: 14, // Slightly larger font for name fallback
+    fontSize: 14,
     color: '#ccc',
     textAlign: 'center',
     fontWeight: '600',
@@ -201,9 +197,7 @@ const itemStyles = StyleSheet.create({
   }
 });
 
-// =======================================================
 // COMPONENTS DECLARED AFTER STYLES
-// =======================================================
 
 const ImageFallback = ({ name }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '?';
@@ -227,7 +221,6 @@ const CardItem = ({ item }) => {
     ? item.imageUrl 
     : `http://192.168.0.217:8080/images/${item.imageUrl}`;
   
-  // Set error state on image load failure or if the URL is empty/invalid
   const handleImageError = () => {
     setImageError(true);
   };
@@ -241,7 +234,6 @@ const CardItem = ({ item }) => {
           onError={handleImageError}
         />
       ) : (
-        // Show item name as fallback
         <ImageFallback name={item.name} /> 
       )}
       
