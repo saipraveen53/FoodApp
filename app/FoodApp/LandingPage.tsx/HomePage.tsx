@@ -22,11 +22,11 @@ const FOOD_SLIDES = [
         specialColor: '#FFD700',
     },
     {
-        title: 'SPICY WINGS',
-        subtitle: 'HOT & CRUNCHY',
-        description: 'Our fiery wings are marinated in a secret blend of spices. Perfect for a kick!',
+        title: 'VIBE SHAKES',
+        subtitle: 'COOL. CREAMY. CRAVABLE.',
+        description: 'Sip on happiness! Our shakes blend premium flavors and creamy texture for the ultimate chill experience.',
         imageUri: 'https://i.ibb.co/PzDDSKf0/old-wall-red-brick-wall-antique-texture-dark-brown-and-red-brick-wall-backgorund-image-photo.webp',
-        productImage: require('@/assets/images/wings.png'),
+        productImage: require('@/assets/images/shake.png'),
         specialColor: '#FF4500',
     },
     {
@@ -54,23 +54,41 @@ const SlideContent = ({ slide }) => (
             <Text style={styles.delicious}>DELICIOUS</Text>
             <Text style={styles.grilled}>{slide.title}</Text>
 
-            <Text style={styles.subHeading}>FRESHLY COOKED & SMOKED</Text>
+           {slide.title !== 'VIBE SHAKES' && (
+                <Text style={styles.subHeading}>FRESHLY COOKED & SMOKED</Text>
+            )}
 
             <Text style={styles.description}>
                 {slide.description}
             </Text>
 
-            <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.shopBtn}>
-                    <Text style={styles.btnText}>ORDER NOW</Text>
-                </TouchableOpacity>
-            </View>
+            {/* * We only render the button here for the web layout.
+              * On mobile, it will be rendered AFTER the image.
+              */}
+            {Platform.OS === 'web' && (
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity style={styles.shopBtn}>
+                        <Text style={styles.btnText}>ORDER NOW</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </View>
 
         <Image
             source={slide.productImage}
             style={styles.productImage} 
         />
+
+        {/* * We render the button here ONLY for mobile (Platform.OS !== 'web').
+          * This places it below the image in the vertical flow.
+          */}
+        {Platform.OS !== 'web' && (
+            <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.shopBtn}>
+                    <Text style={styles.btnText}>ORDER NOW</Text>
+                </TouchableOpacity>
+            </View>
+        )}
     </ImageBackground>
 );
 
@@ -112,6 +130,8 @@ export default function HomePage() {
         <Swiper 
           style={{}} 
           loop={true} 
+          autoplay={true}
+          autoplayTimeout={3}
           showsButtons={false} 
           showsPagination={true} 
           activeDotColor="#FF8A00" 
@@ -202,7 +222,6 @@ const styles = StyleSheet.create({
   },
   header: {
     flex: 1, 
-    width: '100%',
     position: 'relative',
     backgroundColor: '#0b3c4c', 
     ...Platform.select({
