@@ -325,7 +325,7 @@ export default function AllItems() {
 
       <View style={styles.headerContent}>
         <Text style={styles.title}>Full Menu</Text>
-        <Text style={styles.subtitle}>Grab your favorites now!</Text>
+        <Text style={styles.subtitle}>Grab your  favorites now!</Text>
       </View>
 
       <View style={styles.listWrapper}>
