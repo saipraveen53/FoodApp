@@ -23,6 +23,18 @@ export default function RootLayout() {
           title: 'Menu Items', 
         }} 
       />
+
+      {/* --- ADD THESE LINES --- */}
+      <Stack.Screen
+        name="FoodApp/Login"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="FoodApp/Register"
+        options={{ headerShown: false }}
+      />
+      {/* ------------------------- */}
+
     </Stack>
   );
 }

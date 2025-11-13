@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const NavBar = ({ activeScreen = 'Home' }) => {
@@ -62,19 +62,21 @@ const NavBar = ({ activeScreen = 'Home' }) => {
 const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#101010',
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
     ...Platform.select({
       web: { 
-        paddingHorizontal: 25,
+        paddingHorizontal: 60,
         paddingVertical: 18,
+        gap:20,
       },
       default: { 
         paddingHorizontal: 10,
         paddingVertical: 15,
+        justifyContent: 'space-between',
       }
     })
   },
@@ -112,7 +114,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flex: 1.5,
-    marginHorizontal: 10,
+    // marginHorizontal: 10,
   },
   searchInput: {
     backgroundColor: '#282828',
