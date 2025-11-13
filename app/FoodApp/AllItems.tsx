@@ -6,18 +6,28 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import NavBar from './components/NavBar';
 
 // =======================================================
-// STYLESHEETS DECLARED FIRST TO AVOID INITIALIZATION ERROR
+// STYLESHEETS
 // =======================================================
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#1a1a1a',
+    // ...Platform.select({
+    //   web: {
+    //     width: '100%',
+    //     overflowX: 'hidden',
+    //   }
+    // })
   },
   headerContent: {
-    paddingHorizontal: 16,
     paddingTop: 10,
     backgroundColor: '#1a1a1a',
+    // UPDATED: Added larger horizontal padding for web
+    ...Platform.select({
+      web: { paddingHorizontal: 60, paddingBottom: 10 },
+      default: { paddingHorizontal: 16 }
+    })
   },
   title: {
     fontSize: 28,
@@ -34,8 +44,12 @@ const styles = StyleSheet.create({
   },
   listWrapper: {
     flex: 1,
-    paddingHorizontal: 16,
     paddingTop: 5,
+    // UPDATED: Added larger horizontal padding for web
+    ...Platform.select({
+      web: { paddingHorizontal: 60 },
+      default: { paddingHorizontal: 16 }
+    })
   },
   listContent: {
     paddingBottom: 40, 
@@ -76,10 +90,11 @@ const styles = StyleSheet.create({
   },
 });
 
+// UPDATED: Increased web image height
 const imageBase = {
   width: Platform.OS === 'web' ? '100%' : 120,
-  height: Platform.OS === 'web' ? 160 : 120,
-  resizeMode: 'cover',
+  height: Platform.OS === 'web' ? 250 : 120, // <-- CHANGED
+  resizeMode: 'contain',
   borderRadius: Platform.OS === 'web' ? 0 : 12,
   borderBottomLeftRadius: Platform.OS === 'web' ? 0 : 0,
   borderTopRightRadius: Platform.OS === 'web' ? 12 : 0,
@@ -97,12 +112,18 @@ const itemStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
-    flex: Platform.OS === 'web' ? 0.5 : 1, 
-    margin: Platform.OS === 'web' ? 8 : 0,
-    overflow: 'hidden',
     ...Platform.select({
-        web: { minHeight: 380, maxHeight: 400 },
-    })
+  web: {
+    // We have 3 columns and 2 gaps of 20px each (total 40px)
+    // So the width is (100% - 40px) / 3
+    width: 'calc((100% - 40px) / 3)',
+  },
+  default: {
+    // On mobile, numColumns is 1, so flex: 1 is correct
+    flex: 1,
+  }
+}), 
+    overflow: 'hidden',
   },
   image: {
     ...imageBase,
@@ -150,7 +171,7 @@ const itemStyles = StyleSheet.create({
   },
   textContainer: {
     flex: 1,
-    padding: 12,
+    padding: Platform.OS === 'web' ? 20 : 12, // <-- CHANGED
     justifyContent: 'space-between',
   },
   itemName: {
@@ -160,12 +181,16 @@ const itemStyles = StyleSheet.create({
     marginBottom: 4,
   },
   itemDesc: {
-    fontSize: 13,
+    fontSize: Platform.OS === 'web' ? 14 : 13, // <-- CHANGED
     color: '#ccc',
     marginVertical: 4,
+    // UPDATED: Added minHeight to normalize card heights
+    ...Platform.select({
+        web: { minHeight: 40 }, // Reserve space for 2 lines
+    })
   },
   category: {
-    fontSize: 12,
+    fontSize: Platform.OS === 'web' ? 13 : 12, // <-- CHANGED
     color: '#aaa',
     marginBottom: 8,
   },
@@ -173,7 +198,7 @@ const itemStyles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: Platform.OS === 'web' ? 16 : 8, // <-- CHANGED
   },
   itemPrice: {
     fontSize: 18,
@@ -197,7 +222,9 @@ const itemStyles = StyleSheet.create({
   }
 });
 
-// COMPONENTS DECLARED AFTER STYLES
+// =======================================================
+// COMPONENTS
+// =======================================================
 
 const ImageFallback = ({ name }) => {
   const initial = name ? name.charAt(0).toUpperCase() : '?';
@@ -238,9 +265,11 @@ const CardItem = ({ item }) => {
       )}
       
       <View style={itemStyles.textContainer}>
-        <Text style={itemStyles.itemName} numberOfLines={1}>{item.name}</Text>
-        <Text style={itemStyles.itemDesc} numberOfLines={2}>{item.description}</Text>
-        <Text style={itemStyles.category}>Category: {item.menuCategory?.name || 'Uncategorized'}</Text>
+        <View>
+            <Text style={itemStyles.itemName} numberOfLines={1}>{item.name}</Text>
+            <Text style={itemStyles.itemDesc} numberOfLines={2}>{item.description}</Text>
+            <Text style={itemStyles.category}>Category: {item.menuCategory?.name || 'Uncategorized'}</Text>
+        </View>
         
         <View style={itemStyles.bottomRow}>
           <Text style={itemStyles.itemPrice}>₹{item.price}</Text>
@@ -302,8 +331,10 @@ export default function AllItems() {
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <CardItem item={item} />}
         contentContainerStyle={styles.listContent}
-        columnWrapperStyle={Platform.OS === 'web' && { justifyContent: 'space-between' }}
-        numColumns={Platform.OS === 'web' ? 2 : 1}
+        // --- UPDATED FOR WEB ---
+        columnWrapperStyle={Platform.OS === 'web' && { gap: 20 }}
+        numColumns={Platform.OS === 'web' ? 3 : 1}
+        // --- END OF UPDATES ---
         ListFooterComponent={() => (
             <Link href="/" asChild>
                 <TouchableOpacity style={styles.backButton}>
