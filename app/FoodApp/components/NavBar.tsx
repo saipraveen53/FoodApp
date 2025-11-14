@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Platform,
   StyleSheet,
   Text,
@@ -8,13 +10,50 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '../FoodContext';
 
 const NavBar = ({ activeScreen = 'Home' }) => {
   const router = useRouter();
+  const { isAuthenticated, isCheckingAuth, logout } = useAuth();
 
   const navigateTo = (path) => {
     router.push(path);
   };
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  // Cart బటన్ కోసం కొత్త హ్యాండ్లర్, ఇది లాగిన్ స్థితిని తనిఖీ చేస్తుంది
+  const handleCartPress = () => {
+    if (isAuthenticated) {
+      // లాగిన్ అయి ఉంటే, Cart పేజీకి నావిగేట్ చేయండి
+      router.push('/FoodApp/components/Cart'); 
+    } else {
+      // లాగిన్ కాకపోతే, Alert చూపించి లాగిన్ పేజీకి వెళ్ళడానికి ఆప్షన్ ఇవ్వండి
+      Alert.alert(
+        'Login Required',
+        'Please login to view your cart.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          // 'Login' నొక్కితే Login పేజీకి వెళ్లండి
+          { text: 'Login', onPress: () => router.push('/FoodApp/Login') } 
+        ]
+      );
+    }
+  };
+
+  // Only render the search container if on web
+  const renderSearchContainer = Platform.OS === 'web' && (
+    <View style={styles.searchContainer}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search for dishes..."
+        placeholderTextColor="#bbbbbb"
+      />
+    </View>
+  );
 
   return (
     <View style={styles.navBar}>
@@ -39,21 +78,36 @@ const NavBar = ({ activeScreen = 'Home' }) => {
         </View>
       )}
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={Platform.OS === 'web' ? "Search for dishes..." : "Search..."}
-          placeholderTextColor="#bbbbbb"
-        />
-      </View>
+      {/* RENDER SEARCH BAR ONLY ON WEB */}
+      {renderSearchContainer} 
 
       <View style={styles.authLinks}>
-        <TouchableOpacity onPress={() => navigateTo('/FoodApp/Register')}>
-          <Text style={styles.navText}>Sign Up</Text>
+        <TouchableOpacity 
+          onPress={handleCartPress} // handleCartPress ను ఉపయోగిస్తున్నాము
+          style={styles.iconButton}
+        >
+          {/* Cart text */}
+          <Text style={styles.cartText}>Cart</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigateTo('/FoodApp/Login')}>
-          <Text style={styles.navText}>Login</Text>
-        </TouchableOpacity>
+        
+        {isCheckingAuth ? (
+          <View style={styles.authLoading}>
+            <ActivityIndicator size="small" color="#e0e0e0" />
+          </View>
+        ) : isAuthenticated ? (
+          <TouchableOpacity onPress={handleLogout}>
+            <Text style={styles.navText}>Logout</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity onPress={() => navigateTo('/FoodApp/Register')}>
+              <Text style={styles.navText}>Sign Up</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigateTo('/FoodApp/Login')}>
+              <Text style={styles.navText}>Login</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </View>
   );
@@ -62,7 +116,6 @@ const NavBar = ({ activeScreen = 'Home' }) => {
 const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
-    // justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#101010',
     borderBottomWidth: 1,
@@ -88,7 +141,8 @@ const styles = StyleSheet.create({
   },
   navLinks: {
     flexDirection: 'row',
-    flex: 1,
+    // Make navLinks take up full available space on mobile (default) when search is hidden
+    flex: Platform.OS === 'web' ? 1 : 1, 
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
@@ -108,13 +162,21 @@ const styles = StyleSheet.create({
       default: { fontSize: 12 }
     })
   },
+  cartText: {
+    color: '#FF0000', // Red color for Cart text
+    fontWeight: '700',
+    ...Platform.select({
+      web: { fontSize: 16, letterSpacing: 0.5 },
+      default: { fontSize: 12 }
+    })
+  },
   navTextActive: {
     color: '#FF8A00',
     fontWeight: '700',
   },
   searchContainer: {
+    // Only applies to web, as it's conditionally rendered
     flex: 1.5,
-    // marginHorizontal: 10,
   },
   searchInput: {
     backgroundColor: '#282828',
@@ -136,12 +198,23 @@ const styles = StyleSheet.create({
   },
   authLinks: {
     flexDirection: 'row',
-    flex: 1,
+    // INCREASED flex on web to give it more space
+    flex: 1.5, 
     justifyContent: 'flex-end',
+    alignItems: 'center',
     ...Platform.select({
-      web: { gap: 15 },
+      // REDUCED gap on web
+      web: { gap: 8 }, 
       default: { gap: 8 }
     })
+  },
+  iconButton: {
+    // INCREASED padding on web to make it more visible/clickable
+    paddingHorizontal: Platform.OS === 'web' ? 10 : 8, 
+  },
+  authLoading: {
+    width: 50,
+    alignItems: 'center',
   },
 });
 

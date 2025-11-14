@@ -1,6 +1,8 @@
-import axios from 'axios'; // Import axios for API calls
-import { useRouter } from 'expo-router'; // Import useRouter for navigation
-import React, { useState } from 'react'; // Import useState
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,27 +17,22 @@ import {
   View,
 } from 'react-native';
 import NavBar from './components/NavBar';
+import { useAuth } from './FoodContext';
 
-// Get the screen width for responsive styling
 const { width } = Dimensions.get('window');
 
 const Login = () => {
-  const router = useRouter(); // Initialize the router
+  const router = useRouter();
+  const { login } = useAuth();
 
-  // State to hold user input
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  // State for loading and error messages
   const [loading, setLoading] = useState(false);
 
-  /**
-   * Handles the login button press.
-   */
   const handleLogin = async () => {
-    if (loading) return; // Prevent multiple clicks
+    if (loading) return;
 
-    // Basic validation
     if (!username || !password) {
       Alert.alert('Error', 'Please enter both username and password.');
       return;
@@ -44,7 +41,6 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // --- This is your API call ---
       const response = await axios.post(
         'http://192.168.0.217:8080/auth/login',
         {
@@ -53,22 +49,36 @@ const Login = () => {
         }
       );
 
-      // --- Handle Success ---
-      setLoading(false);
+      if (!response.data || typeof response.data !== 'string') {
+        throw new Error('Token not found in response');
+      }
 
-      // Assuming a successful login, navigate to the Home page
-      // router.push('/') will navigate to 'app/(tabs)/index.tsx' which loads your HomePage
+      const token = response.data;
+      await AsyncStorage.setItem('userToken', token);
+
+      try {
+        const decodedPayload = jwtDecode(token);
+
+        console.log('Decoded Token Payload:', decodedPayload);
+
+        for (const key in decodedPayload) {
+          if (Object.prototype.hasOwnProperty.call(decodedPayload, key)) {
+            const value = String(decodedPayload[key]);
+            await AsyncStorage.setItem(key, value);
+          }
+        }
+      } catch (decodeError) {
+        console.error('Failed to decode or store token parts:', decodeError);
+      }
+
+      setLoading(false);
+      await login();
       router.push('/');
-      
-      // You would typically save the token from response.data here
-      // e.g., await AsyncStorage.setItem('token', response.data.token);
 
     } catch (error) {
-      // --- Handle Failure ---
       setLoading(false);
       console.error('Login Failed:', error);
 
-      // Show a user-friendly error message
       Alert.alert(
         'Login Failed',
         'Invalid username or password. Please try again.'
@@ -80,7 +90,6 @@ const Login = () => {
     <SafeAreaView style={styles.safeArea}>
       <NavBar activeScreen="Login" />
       <View style={styles.contentContainer}>
-        {/* Left Section - Login Form */}
         <View style={styles.leftSection}>
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>FoodApp</Text>
@@ -94,24 +103,24 @@ const Login = () => {
               autoCapitalize="none"
               accessibilityLabel="Username input"
               value={username}
-              onChangeText={setUsername} // Set username state
-              editable={!loading} // Disable input when loading
+              onChangeText={setUsername}
+              editable={!loading}
             />
             <TextInput
               style={styles.input}
               placeholder="Password"
               placeholderTextColor="#888"
-              secureTextEntry // Hides the password
+              secureTextEntry
               accessibilityLabel="Password input"
               value={password}
-              onChangeText={setPassword} // Set password state
-              editable={!loading} // Disable input when loading
+              onChangeText={setPassword}
+              editable={!loading}
             />
             <TouchableOpacity
               style={styles.loginButton}
               activeOpacity={0.7}
-              onPress={handleLogin} // Call handleLogin on press
-              disabled={loading} // Disable button when loading
+              onPress={handleLogin}
+              disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#ffffff" />
@@ -124,7 +133,6 @@ const Login = () => {
           <Text style={styles.copyrightText}>©2025 FoodApp</Text>
         </View>
 
-        {/* Right Section - Image (Only shown on web or large screens) */}
         {Platform.OS === 'web' && (
           <View style={styles.rightSection}>
             <View style={styles.imageContainer}>
@@ -143,22 +151,18 @@ const Login = () => {
   );
 };
 
-// --- STYLES (No changes, just pasting them back) ---
-
 const styles = StyleSheet.create({
-  // This is the main screen wrapper
   safeArea: {
     flex: 1,
     ...Platform.select({
       default: {
-        backgroundColor: '#1a1a1a', // Keep dark mode for mobile
+        backgroundColor: '#1a1a1a',
       },
       web: {
-        backgroundColor: '#ffffff', // White background for web
+        backgroundColor: '#ffffff',
       },
     }),
   },
-  // This container holds the left (form) and right (image) sections
   contentContainer: {
     flex: 1,
     ...Platform.select({
@@ -173,8 +177,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-
-  // --- Left (Form) Section ---
   leftSection: {
     ...Platform.select({
       web: {
@@ -206,7 +208,7 @@ const styles = StyleSheet.create({
         color: '#333',
       },
       default: {
-        color: '#FF8A00', // Use brand color on dark background
+        color: '#FF8A00',
       },
     }),
   },
@@ -214,10 +216,10 @@ const styles = StyleSheet.create({
     width: '100%',
     ...Platform.select({
       web: {
-        alignItems: 'flex-start', // Align inputs to the left
+        alignItems: 'flex-start',
       },
       default: {
-        alignItems: 'center', // Center inputs on mobile
+        alignItems: 'center',
       },
     }),
   },
@@ -234,12 +236,12 @@ const styles = StyleSheet.create({
     elevation: 2,
     ...Platform.select({
       web: {
-        width: '80%', // 80% of left section width
+        width: '80%',
         backgroundColor: '#f0f0f0',
         color: '#000',
       },
       default: {
-        width: '100%', // Full width on mobile
+        width: '100%',
         backgroundColor: '#2a2a2a',
         color: '#fff',
       },
@@ -258,12 +260,12 @@ const styles = StyleSheet.create({
     elevation: 3,
     ...Platform.select({
       web: {
-        width: '40%', // Smaller width on web
-        backgroundColor: '#333', // Dark button
+        width: '40%',
+        backgroundColor: '#333',
       },
       default: {
-        width: '100%', // Full width on mobile
-        backgroundColor: '#FF8A00', // Brand color button
+        width: '100%',
+        backgroundColor: '#FF8A00',
       },
     }),
   },
@@ -274,7 +276,7 @@ const styles = StyleSheet.create({
   },
   copyrightText: {
     fontSize: 12,
-    marginTop: 'auto', // Push to bottom
+    marginTop: 'auto',
     paddingTop: 20,
     ...Platform.select({
       web: {
@@ -285,8 +287,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-
-  // --- Right (Image) Section (Web-only) ---
   rightSection: {
     flex: 0.55,
     margin:"1%",

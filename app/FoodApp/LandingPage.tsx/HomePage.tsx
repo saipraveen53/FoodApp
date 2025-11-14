@@ -63,7 +63,6 @@ const SlideContent = ({ slide, onOrderPress }) => (
                 {slide.description}
             </Text>
 
-            {/* FIXED: Added onPress handler for Web */}
             {Platform.OS === 'web' && (
                 <View style={styles.buttonRow}>
                     <TouchableOpacity style={styles.shopBtn} onPress={onOrderPress}>
@@ -78,7 +77,6 @@ const SlideContent = ({ slide, onOrderPress }) => (
             style={styles.productImage} 
         />
 
-        {/* FIXED: Added onPress handler for Mobile */}
         {Platform.OS !== 'web' && (
             <View style={styles.buttonRow}>
                 <TouchableOpacity style={styles.shopBtn} onPress={onOrderPress}>
@@ -98,7 +96,6 @@ export default function HomePage() {
   const router = useRouter();
 
   const handleOrderPress = () => {
-    // This is the navigation function
     router.push('/FoodApp/AllItems');
   };
 
@@ -123,7 +120,6 @@ export default function HomePage() {
               <Slide 
                   key={index} 
                   slide={slide} 
-                  // FIXED: Passing the handler down
                   onOrderPress={handleOrderPress} 
               />
           ))}
@@ -224,7 +220,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     ...Platform.select({
         web: { fontSize: 20, textAlign: 'left' },
-        default: { fontSize: 18, textAlign: 'center' }
+        default: { fontSize: 18, textAlign: "center" }
     })
   },
   description: {
