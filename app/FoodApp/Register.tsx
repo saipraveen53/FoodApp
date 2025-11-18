@@ -7,13 +7,14 @@ import {
   Dimensions,
   Image,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+// MARPU (Change): react-native-safe-area-context nundi import cheyyali
+import { SafeAreaView } from 'react-native-safe-area-context';
 import NavBar from './components/NavBar';
 
 const { width } = Dimensions.get('window');
@@ -46,7 +47,7 @@ const Register = () => {
 
     try {
       await axios.post(
-        'http://192.168.0.217:8080/auth/register',
+        'http://192.168.0.240:8080/auth/register',
         {
           name: name,
           email: email,

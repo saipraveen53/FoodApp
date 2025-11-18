@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { useState } from 'react';
@@ -9,13 +8,14 @@ import {
   Dimensions,
   Image,
   Platform,
-  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { rootApi } from './axiosInstance';
 import NavBar from './components/NavBar';
 import { useAuth } from './FoodContext';
 
@@ -41,8 +41,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        'http://192.168.0.217:8080/auth/login',
+      const response = await rootApi.post(
+        'auth/login',
         {
           email: username,
           password: password,
@@ -72,8 +72,14 @@ const Login = () => {
       }
 
       setLoading(false);
-      await login();
-      router.push('/');
+      const role = await login();
+
+      if (role === 'ROLE_ADMIN') {
+        // FIX: Removed leading slash
+        router.push('FoodApp/AdminDashboard'); 
+      } else {
+        router.push('/');
+      }
 
     } catch (error) {
       setLoading(false);

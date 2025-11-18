@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,37 +14,85 @@ import { useAuth } from '../FoodContext';
 
 const NavBar = ({ activeScreen = 'Home' }) => {
   const router = useRouter();
-  const { isAuthenticated, isCheckingAuth, logout } = useAuth();
+  const { isAuthenticated, isCheckingAuth, logout, userRole } = useAuth();
+  const [isMenuVisible, setMenuVisible] = useState(false);
+
+  const isAdmin = userRole === 'ROLE_ADMIN';
 
   const navigateTo = (path) => {
+    setMenuVisible(false);
+    // Ee function lo path ni as is ga vesi, below links lo leading slash tesesanu
     router.push(path);
   };
 
   const handleLogout = async () => {
+    setMenuVisible(false);
     await logout();
-    router.push('/');
+    // FIX: Removed leading slash
+    router.push('FoodApp/Login'); 
   };
 
-  // Cart బటన్ కోసం కొత్త హ్యాండ్లర్, ఇది లాగిన్ స్థితిని తనిఖీ చేస్తుంది
   const handleCartPress = () => {
+    setMenuVisible(false);
     if (isAuthenticated) {
-      // లాగిన్ అయి ఉంటే, Cart పేజీకి నావిగేట్ చేయండి
-      router.push('/FoodApp/components/Cart'); 
+      router.push('/FoodApp/Cart');
     } else {
-      // లాగిన్ కాకపోతే, Alert చూపించి లాగిన్ పేజీకి వెళ్ళడానికి ఆప్షన్ ఇవ్వండి
       Alert.alert(
         'Login Required',
         'Please login to view your cart.',
         [
           { text: 'Cancel', style: 'cancel' },
-          // 'Login' నొక్కితే Login పేజీకి వెళ్లండి
-          { text: 'Login', onPress: () => router.push('/FoodApp/Login') } 
+          // FIX: Changed to non-leading slash path
+          { text: 'Login', onPress: () => navigateTo('FoodApp/Login') },
+        ]
+      );
+    }
+  };
+  
+  const handleProfilePress = () => {
+    setMenuVisible(false);
+    if (isAuthenticated) {
+      router.push('/FoodApp/ProfilePage');
+    } else {
+      Alert.alert(
+        'Login Required',
+        'Please login to view your profile.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          // FIX: Changed to non-leading slash path
+          { text: 'Login', onPress: () => navigateTo('FoodApp/Login') },
         ]
       );
     }
   };
 
-  // Only render the search container if on web
+  const handleOrdersPress = () => {
+    setMenuVisible(false);
+    if (isAuthenticated) {
+      router.push('/FoodApp/OderHistory');
+    } else {
+      Alert.alert(
+        'Login Required',
+        'Please login to view your order history.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          // FIX: Changed to non-leading slash path
+          { text: 'Login', onPress: () => navigateTo('FoodApp/Login') },
+        ]
+      );
+    }
+  };
+  
+  const handleAdminDashboardPress = () => {
+    setMenuVisible(false);
+    if (isAdmin) {
+      // FIX: Removed leading slash
+      router.push('FoodApp/AdminDashboard'); 
+    } else {
+      Alert.alert('Unauthorized', 'You do not have administrative privileges.');
+    }
+  };
+
   const renderSearchContainer = Platform.OS === 'web' && (
     <View style={styles.searchContainer}>
       <TextInput
@@ -58,7 +106,7 @@ const NavBar = ({ activeScreen = 'Home' }) => {
   return (
     <View style={styles.navBar}>
       <View style={styles.navLinks}>
-        <Text style={styles.brandText}>FoodApp</Text> 
+        <Text style={styles.brandText}>FoodApp</Text>
       </View>
 
       {Platform.OS === 'web' && (
@@ -78,35 +126,58 @@ const NavBar = ({ activeScreen = 'Home' }) => {
         </View>
       )}
 
-      {/* RENDER SEARCH BAR ONLY ON WEB */}
-      {renderSearchContainer} 
+      {renderSearchContainer}
 
       <View style={styles.authLinks}>
-        <TouchableOpacity 
-          onPress={handleCartPress} // handleCartPress ను ఉపయోగిస్తున్నాము
+        <TouchableOpacity
+          onPress={() => setMenuVisible(!isMenuVisible)}
           style={styles.iconButton}
         >
-          {/* Cart text */}
-          <Text style={styles.cartText}>Cart</Text>
+          <Text style={styles.iconText}>User</Text>
         </TouchableOpacity>
-        
-        {isCheckingAuth ? (
-          <View style={styles.authLoading}>
-            <ActivityIndicator size="small" color="#e0e0e0" />
+
+        {isMenuVisible && (
+          <View style={styles.menuContainer}>
+            
+            {isAdmin && (
+              <TouchableOpacity style={styles.menuItem} onPress={handleAdminDashboardPress}>
+                <Text style={styles.menuItemText}>Admin Dashboard</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleCartPress}>
+              <Text style={styles.menuItemText}>Cart</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleProfilePress}>
+              <Text style={styles.menuItemText}>Profile</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.menuItem} onPress={handleOrdersPress}>
+              <Text style={styles.menuItemText}>My Orders</Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            {isCheckingAuth ? (
+              <View style={[styles.menuItem, styles.authLoading]}>
+                <ActivityIndicator size="small" color="#e0e0e0" />
+              </View>
+            ) : isAuthenticated ? (
+              <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                <Text style={styles.menuItemText}>Logout</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo('FoodApp/Register')}>
+                  <Text style={styles.menuItemText}>Sign Up</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo('FoodApp/Login')}>
+                  <Text style={styles.menuItemText}>Login</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
-        ) : isAuthenticated ? (
-          <TouchableOpacity onPress={handleLogout}>
-            <Text style={styles.navText}>Logout</Text>
-          </TouchableOpacity>
-        ) : (
-          <>
-            <TouchableOpacity onPress={() => navigateTo('/FoodApp/Register')}>
-              <Text style={styles.navText}>Sign Up</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateTo('/FoodApp/Login')}>
-              <Text style={styles.navText}>Login</Text>
-            </TouchableOpacity>
-          </>
         )}
       </View>
     </View>
@@ -120,18 +191,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#101010',
     borderBottomWidth: 1,
     borderBottomColor: '#333333',
+    zIndex: 1000, 
     ...Platform.select({
-      web: { 
+      web: {
         paddingHorizontal: 60,
         paddingVertical: 18,
-        gap:20,
+        gap: 20,
       },
-      default: { 
+      default: {
         paddingHorizontal: 10,
         paddingVertical: 15,
         justifyContent: 'space-between',
-      }
-    })
+      },
+    }),
   },
   brandText: {
     color: '#FF8A00',
@@ -141,8 +213,7 @@ const styles = StyleSheet.create({
   },
   navLinks: {
     flexDirection: 'row',
-    // Make navLinks take up full available space on mobile (default) when search is hidden
-    flex: Platform.OS === 'web' ? 1 : 1, 
+    flex: Platform.OS === 'web' ? 1 : 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
   },
@@ -151,31 +222,22 @@ const styles = StyleSheet.create({
     gap: 20,
     flex: 2,
     ...Platform.select({
-        default: { display: 'none' }
-    })
+      default: { display: 'none' },
+    }),
   },
   navText: {
     color: '#e0e0e0',
     fontWeight: '500',
     ...Platform.select({
       web: { fontSize: 16, letterSpacing: 0.5 },
-      default: { fontSize: 12 }
-    })
-  },
-  cartText: {
-    color: '#FF0000', // Red color for Cart text
-    fontWeight: '700',
-    ...Platform.select({
-      web: { fontSize: 16, letterSpacing: 0.5 },
-      default: { fontSize: 12 }
-    })
+      default: { fontSize: 12 },
+    }),
   },
   navTextActive: {
     color: '#FF8A00',
     fontWeight: '700',
   },
   searchContainer: {
-    // Only applies to web, as it's conditionally rendered
     flex: 1.5,
   },
   searchInput: {
@@ -193,28 +255,59 @@ const styles = StyleSheet.create({
       default: {
         paddingHorizontal: 15,
         paddingVertical: 8,
-      }
-    })
+      },
+    }),
   },
   authLinks: {
     flexDirection: 'row',
-    // INCREASED flex on web to give it more space
-    flex: 1.5, 
+    flex: 1.5,
     justifyContent: 'flex-end',
     alignItems: 'center',
-    ...Platform.select({
-      // REDUCED gap on web
-      web: { gap: 8 }, 
-      default: { gap: 8 }
-    })
+    position: 'relative',
+    zIndex: 100, 
   },
   iconButton: {
-    // INCREASED padding on web to make it more visible/clickable
-    paddingHorizontal: Platform.OS === 'web' ? 10 : 8, 
+    paddingHorizontal: Platform.OS === 'web' ? 10 : 8,
+  },
+  iconText: {
+    color: '#FF8A00',
+    fontWeight: '700',
+    fontSize: 16,
   },
   authLoading: {
     width: 50,
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuContainer: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#333333',
+    marginTop: 8,
+    width: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 10,
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+  },
+  menuItemText: {
+    color: '#e0e0e0',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#444444',
+    marginVertical: 4,
   },
 });
 

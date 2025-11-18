@@ -33,10 +33,33 @@ export default function RootLayout() {
           name="FoodApp/Register"
           options={{ headerShown: false }}
         />
+        
         <Stack.Screen
           name="FoodApp/Cart"
           options={{ headerShown: false }}
         />
+        
+        <Stack.Screen
+          name="FoodApp/PaymentStatus"
+          options={{ headerShown: false }}
+        />
+        
+        <Stack.Screen
+          name="FoodApp/ProfilePage"
+          options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="FoodApp/OderHistory"
+          options={{ headerShown: false }}
+        />
+        
+        {/* NEW ADMIN DASHBOARD SCREEN */}
+        <Stack.Screen
+          name="FoodApp/AdminDashboard"
+          options={{ headerShown: false }}
+        />
+        
       </Stack>
     </AuthProvider>
   );

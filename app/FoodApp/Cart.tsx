@@ -1,40 +1,46 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Stack, useRouter } from 'expo-router'; // useRouter import chesam
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Dimensions,
-    FlatList,
-    Image,
-    Platform,
-    RefreshControl,
-
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { useAuth } from '../FoodContext';
-import NavBar from './NavBar';
+// MARPU: react-native-safe-area-context nundi import cheyyali (Status bar fix)
+import RazorpayCheckout from 'react-native-razorpay'; // <-- NEW: Razorpay Import
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from './FoodContext';
+import { rootApi } from './axiosInstance';
+import NavBar from './components/NavBar';
 
 const { width: screenWidth } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 const isDesktop = isWeb && screenWidth > 768;
 
 const Cart = () => {
+  const router = useRouter(); // <-- ADDED
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [cartData, setCartData] = useState(null);
+  const [cartData, setCartData] = useState(null); // Initial state null ga unchadam sarainade
   const [updatingItem, setUpdatingItem] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false); // <-- NEW: Ordering state
   const { refreshCart } = useAuth(); 
 
   
   useEffect(() => {
     setLoading(true);
+    // Initial load ki cartData null ga unte, fetchCart set chestundi
     fetchCart().finally(() => setLoading(false));
   }, []);
 
@@ -48,17 +54,18 @@ const Cart = () => {
         throw new Error('No token found. Please login again');
       }
       
-      const response = await axios.get(
-        `http://192.168.0.217:8080/cart/myCart`,
-        {
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
+      const response = await rootApi.get(
+        `cart/myCart`,
+         
       );
       
-      setCartData(response.data);
+      // API nundi vachina data lo 'items' lekapothe, khali array ni set cheyyali
+      if (response.data && !response.data.items) {
+          setCartData({ ...response.data, items: [] });
+      } else {
+          setCartData(response.data);
+      }
+
     } catch (err) {
       if (err.response) {
         console.error('Server Error:', err.response.data);
@@ -67,7 +74,8 @@ const Cart = () => {
         if (err.response.status === 401) {
           Alert.alert('Authentication Error', 'Please login again');
         } else if (err.response.status === 404) {
-          setCartData(null);
+          // MARPU (BUG FIX): null ki badulu, khali object ni set cheyyali
+          setCartData({ items: [], totalAmount: 0 });
         } else if (err.response.status >= 500) {
           Alert.alert('Server Error', 'Something went wrong. Please try again later');
         }
@@ -103,22 +111,18 @@ const Cart = () => {
         throw new Error('No token found. Please login again');
       }
 
-      await axios.post(
-        `http://192.168.0.217:8080/cart/addItem`,
+      await rootApi.post(
+        `cart/addItem`,
         {
           menuItemId: menuItemId,
           quantity: 1,
         },
-        {
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
+         
       );
 
       setCartData(prevData => {
-        if (!prevData) return prevData;
+        // Guard check (Eppudu null raadu, kani unchadam manchidi)
+        if (!prevData) return { items: [], totalAmount: 0 }; 
         
         const newQuantity = currentQuantity + 1;
         const updatedItems = prevData.items.map(item => {
@@ -167,7 +171,7 @@ const Cart = () => {
       }
 
       await axios.put( 
-        `http://192.168.0.217:8080/cart/decrease/${itemId}`, 
+        `http://192.168.0.240:8080/cart/decrease/${itemId}`, 
         {}, 
         {
           headers: {
@@ -178,7 +182,7 @@ const Cart = () => {
       );
 
       setCartData(prevData => {
-        if (!prevData) return prevData;
+        if (!prevData) return { items: [], totalAmount: 0 };
         
         const currentItem = prevData.items.find(item => item.id === itemId);
         if (!currentItem) return prevData;
@@ -221,6 +225,111 @@ const Cart = () => {
       } else {
         Alert.alert('Error', err.message);
       }
+    }
+  };
+  
+  // MARPU: handlePlaceOrder ni handleCheckout ga marchesanu
+  const handleCheckout = async () => {
+    if (isOrdering) return;
+    
+    // Check if cartData is loaded and has items
+    if (!cartData || !cartData.items || cartData.items.length === 0) {
+        Alert.alert('Empty Cart', 'Please add items to your cart before proceeding to checkout.');
+        return;
+    }
+
+    setIsOrdering(true);
+    let orderId: string | undefined;
+
+    try {
+      const userToken = await AsyncStorage.getItem('userToken');
+      
+      if (!userToken) {
+        Alert.alert('Login Required', 'Please login to place your order.');
+        router.push('/FoodApp/Login');
+        return;
+      }
+
+      // 1. Call the placeOrder API to create an Order ID
+      const orderResponse = await rootApi.post(
+        `order/placeOrder`,
+        {}, 
+         
+      );
+      
+      orderId = orderResponse.data.id; 
+      
+      if (!orderId) {
+          throw new Error("Could not get a valid Order ID from the server.");
+      }
+
+      // 2. Razorpay Payment Integration
+      const totalAmount = cartData.totalAmount; 
+      
+      const options = {
+        key: "rzp_test_4INOZPgnCu4YZa", // Mee Test Key ID
+        amount: totalAmount * 100, // Amount in paise
+        currency: "INR",
+        name: "FoodApp",
+        description: "Thank you for shopping with us!",
+        image: "https://your_logo_url.png",
+        order_id: orderResponse.data.razorpayOrderId || undefined, 
+        prefill: {
+          name: await AsyncStorage.getItem('name') || 'Customer', 
+          email: await AsyncStorage.getItem('email') || 'email@example.com',
+          contact: await AsyncStorage.getItem('phone') || '9999999999',
+        },
+        theme: {
+          color: "#FF8A00", 
+        },
+      };
+
+      // RazorpayCheckout.open promise ni return chestundi
+      RazorpayCheckout.open(options)
+        .then(async (data) => {
+          // Payment Successful
+          Alert.alert(
+            "Payment Successful!", 
+            `Payment ID: ${data.razorpay_payment_id}\nOrder ID: #${orderId}`
+          );
+          
+          refreshCart(); 
+
+          // PaymentStatus screen ki vellandi
+          router.push({
+            pathname: '/FoodApp/PaymentStatus',
+            params: { orderId: orderId, status: 'Successful' }
+          });
+
+        })
+        .catch((error) => {
+          // Payment Failed or Cancelled
+          let reason = error.description || `Error Code: ${error.code}`;
+          Alert.alert(
+            "Payment Failed", 
+            `Order #${orderId} payment failed. Reason: ${reason}`
+          );
+          
+          router.push({
+            pathname: '/FoodApp/PaymentStatus',
+            params: { orderId: orderId, status: 'Failed' }
+          });
+        });
+      
+    } catch (err) {
+      console.error('Order/Payment Pre-Check Failed:', err);
+      
+      let errorMessage = 'Failed to place order or initialize payment. Please try again.';
+      if (err.response && err.response.data && err.response.data.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response && err.response.status === 401) {
+        errorMessage = 'Authentication expired. Please log in again.';
+      }
+
+      Alert.alert('Checkout Failed', errorMessage);
+      
+    } finally {
+      setIsOrdering(false);
     }
   };
   
@@ -271,10 +380,10 @@ const Cart = () => {
                 style={[
                   styles.qtyButton,
                   isDesktop && styles.qtyButtonDesktop,
-                  isUpdating && styles.qtyButtonDisabled
+                  (isUpdating || isOrdering) && styles.qtyButtonDisabled // Check isOrdering
                 ]}
                 onPress={() => handleDecrement(item.id, item.quantity)} 
-                disabled={isUpdating}
+                disabled={isUpdating || isOrdering} // Disable while ordering
               >
                 <Text style={[
                   styles.qtyButtonText,
@@ -288,7 +397,7 @@ const Cart = () => {
                 styles.quantityDisplay,
                 isDesktop && styles.quantityDisplayDesktop
               ]}>
-                {isUpdating ? (
+                {(isUpdating || isOrdering) ? ( // Check isOrdering
                   <ActivityIndicator size="small" color="#FF8A00" />
                 ) : (
                   <Text style={[
@@ -304,10 +413,10 @@ const Cart = () => {
                 style={[
                   styles.qtyButton,
                   isDesktop && styles.qtyButtonDesktop,
-                  isUpdating && styles.qtyButtonDisabled
+                  (isUpdating || isOrdering) && styles.qtyButtonDisabled // Check isOrdering
                 ]}
                 onPress={() => handleIncrement(item)}
-                disabled={isUpdating}
+                disabled={isUpdating || isOrdering} // Disable while ordering
               >
                 <Text style={[
                   styles.qtyButtonText,
@@ -329,9 +438,12 @@ const Cart = () => {
     );
   };
 
+  // Ekkada cartData null ga unna, loading state true ga untundi, 
+  // kabatti ee code block ki raadu.
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <Stack.Screen options={{ headerShown: false }} /> 
         <NavBar />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color="#FF8A00" />
@@ -344,6 +456,7 @@ const Cart = () => {
   if (error) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <Stack.Screen options={{ headerShown: false }} /> 
         <NavBar />
         <View style={styles.centerContainer}>
           <Text style={styles.errorTitle}>Error</Text>
@@ -356,9 +469,12 @@ const Cart = () => {
     );
   }
 
+  // Ee check ippudu 'cartData' null unna (initial render) 
+  // leda 'items' khali ga unna (404 fix) pani chestundi.
   if (!cartData || !cartData.items || cartData.items.length === 0) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <Stack.Screen options={{ headerShown: false }} /> 
         <NavBar />
         <View style={styles.centerContainer}>
           <Text style={styles.title}>My Cart</Text>
@@ -374,6 +490,7 @@ const Cart = () => {
   if (isDesktop) {
     return (
       <SafeAreaView style={styles.safeArea}>
+        <Stack.Screen options={{ headerShown: false }} /> 
         <NavBar />
         <View style={styles.desktopContainer}>
           <View style={styles.desktopContent}>
@@ -420,8 +537,16 @@ const Cart = () => {
               <Text style={styles.totalValue}>₹{cartData.totalAmount.toFixed(2)}</Text>
             </View>
             
-            <TouchableOpacity style={styles.checkoutButton}>
-              <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+            <TouchableOpacity 
+                style={[styles.checkoutButton, isOrdering && styles.qtyButtonDisabled]}
+                onPress={handleCheckout} // <-- Updated to handleCheckout
+                disabled={isOrdering}
+            >
+              {isOrdering ? (
+                  <ActivityIndicator size="small" color="#1a1a1a" />
+              ) : (
+                  <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -432,6 +557,7 @@ const Cart = () => {
   
   return (
     <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen options={{ headerShown: false }} /> 
       <NavBar />
       <View style={styles.container}>
         <Text style={styles.headerTitle}>My Cart</Text>
@@ -466,8 +592,16 @@ const Cart = () => {
             <Text style={styles.totalLabel}>Total Amount:</Text>
             <Text style={styles.totalValue}>₹{cartData.totalAmount.toFixed(2)}</Text>
           </View>
-          <TouchableOpacity style={styles.checkoutButton}>
-            <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+          <TouchableOpacity 
+            style={[styles.checkoutButton, isOrdering && styles.qtyButtonDisabled]}
+            onPress={handleCheckout} // <-- Updated to handleCheckout
+            disabled={isOrdering}
+          >
+            {isOrdering ? (
+                <ActivityIndicator size="small" color="#1a1a1a" />
+            ) : (
+                <Text style={styles.checkoutText}>Proceed to Checkout</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>

@@ -1,5 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 import { Link, Stack } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -15,10 +13,10 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from './FoodContext';
+import { IMAGE_BASE_URL, rootApi } from './axiosInstance';
 import NavBar from './components/NavBar';
+import { useAuth } from './FoodContext';
 
-// Styles remain the same, adding new styles for quantity controls
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -44,6 +42,20 @@ const styles = StyleSheet.create({
     color: '#e0e0e0',
     textAlign: 'center',
     marginBottom: 10,
+  },
+  adminButton: {
+    backgroundColor: '#007bff',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 5,
+  },
+  adminButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   listWrapper: {
     flex: 1,
@@ -202,7 +214,6 @@ const itemStyles = StyleSheet.create({
     color: '#FF8A00',
     fontWeight: '900',
   },
-  // Reusing existing styles for button base
   addToCartButton: {
     backgroundColor: '#FF8A00',
     paddingVertical: 8,
@@ -218,7 +229,6 @@ const itemStyles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
-  // NEW styles for Quantity Controls
   quantityControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -232,7 +242,6 @@ const itemStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#FF8A00',
-    // Match styles from Cart.tsx
   },
   qtyButtonDisabled: {
     backgroundColor: '#666',
@@ -272,25 +281,22 @@ const ImageFallback = ({ name }) => {
   );
 };
 
-// Modified CardItem to accept cart data and update function
 const CardItem = ({ item, cartItem, handleUpdateCart }) => {
   const [imageError, setImageError] = useState(false);
-  const { isAuthenticated, refreshCart } = useAuth(); // ADDED refreshCart for direct update
+  const { isAuthenticated, refreshCart } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
   
-  // Cart information for this item
   const currentQuantity = cartItem?.quantity || 0;
   const cartItemId = cartItem?.cartItemId;
   
   const imageUrl = item.imageUrl?.startsWith('http') 
     ? item.imageUrl 
-    : `http://192.168.0.217:8080/images/${item.imageUrl}`;
+    : `${IMAGE_BASE_URL}/images/${item.imageUrl}`;
   
   const handleImageError = () => {
     setImageError(true);
   };
 
-  // Logic for '+' button (Add to Cart / Increment)
   const handleIncrement = async () => {
     if (!isAuthenticated) {
       Alert.alert('Login Required', 'please login for adding items');
@@ -300,24 +306,12 @@ const CardItem = ({ item, cartItem, handleUpdateCart }) => {
 
     setIsUpdating(true);
     try {
-      const token = await AsyncStorage.getItem('userToken');
+      await rootApi.post('cart/addItem', {
+        menuItemId: item.id,
+        quantity: 1,
+      });
       
-      // Hit the same endpoint as AddToCart: POST /cart/addItem with quantity: 1
-      await axios.post('http://192.168.0.217:8080/cart/addItem', 
-        {
-          menuItemId: item.id,
-          quantity: 1, // Always 1 for increment
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-      
-      // 1. Update local cart map state after successful API call
       handleUpdateCart(item.id, currentQuantity + 1, cartItemId);
-      // 2. Notify other screens/context
       refreshCart();
       
     } catch (error) {
@@ -328,33 +322,24 @@ const CardItem = ({ item, cartItem, handleUpdateCart }) => {
     }
   };
 
-  // Logic for '-' button (Decrement / Remove)
   const handleDecrement = async () => {
     if (!isAuthenticated) return;
     if (isUpdating) return;
     if (currentQuantity === 0) return;
 
-    // We need the cartItemId from the backend response, which is stored in cartMap
     if (!cartItemId) {
         Alert.alert('Error', 'Cannot decrement. Item ID not found in cart data.');
         return;
     }
     
-    // Logic for decrement or removal: Call the decrease endpoint
     setIsUpdating(true);
     try {
-        const token = await AsyncStorage.getItem('userToken');
-        
-        // POST call to decrease endpoint
-        await axios.post(
-            `http://192.168.0.217:8080/cart/decrease/${cartItemId}`, // Use POST for the decrease action
-            {},
-            { headers: { 'Authorization': `Bearer ${token}` } } // TOKEN is sent here
+        await rootApi.post(
+            `/decrease/${cartItemId}`,
+            {}
         );
         
-        // 1. Update local state (decrement by 1, or set to 0 if it was 1)
         handleUpdateCart(item.id, currentQuantity - 1, cartItemId);
-        // 2. Notify other screens/context
         refreshCart();
         
     } catch (error) {
@@ -367,12 +352,11 @@ const CardItem = ({ item, cartItem, handleUpdateCart }) => {
 
   const renderCartControls = () => {
     if (currentQuantity > 0) {
-      // Show [ - | QTY | + ]
       return (
         <View style={itemStyles.quantityControls}>
             <TouchableOpacity 
                 style={[itemStyles.qtyButton, isUpdating && itemStyles.qtyButtonDisabled]}
-                onPress={handleDecrement} // Calls handleDecrement for qty >= 1
+                onPress={handleDecrement}
                 disabled={isUpdating}
             >
                 <Text style={itemStyles.qtyButtonText}>-</Text>
@@ -396,7 +380,6 @@ const CardItem = ({ item, cartItem, handleUpdateCart }) => {
         </View>
       );
     } else {
-      // Show 'Add to Cart' button (now using handleIncrement which is the + logic)
       return (
         <TouchableOpacity 
           style={itemStyles.addToCartButton}
@@ -446,24 +429,20 @@ export default function AllItems() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // State to store cart items mapped by menuItemId
-  const [cartMap, setCartMap] = useState({}); // { menuItemId: { cartItemId, quantity } }
+  const [cartMap, setCartMap] = useState({});
   const [refreshing, setRefreshing] = useState(false);
-  const { isAuthenticated, cartVersion } = useAuth(); // MODIFIED: Get cartVersion
+  const { isAuthenticated, cartVersion } = useAuth();
   
-  // Function to update the local cart state
   const handleUpdateCart = (menuItemId, newQuantity, knownCartItemId) => {
     setCartMap(prevCartMap => {
         const itemInCart = prevCartMap[menuItemId];
         
-        // If quantity is 0 or less, remove the item from the map
         if (newQuantity <= 0) {
             const newMap = { ...prevCartMap };
             delete newMap[menuItemId];
             return newMap;
         }
 
-        // If item exists, update quantity
         if (itemInCart) {
             return {
                 ...prevCartMap,
@@ -474,7 +453,6 @@ export default function AllItems() {
             };
         } 
         
-        // If item is new (just added from 0), add it to the map.
         return {
             ...prevCartMap,
             [menuItemId]: {
@@ -485,7 +463,6 @@ export default function AllItems() {
     });
   };
 
-  // REFACTORED: Combined fetching logic
   const fetchAllItemsAndCart = async (isRefreshing = false) => {
     try {
         if (!isRefreshing) {
@@ -493,20 +470,14 @@ export default function AllItems() {
             setError(null);
         }
         
-        // 1. Fetch All Menu Items
-        const itemsResponse = await axios.get('http://192.168.0.217:8080/items/allItems');
+        const itemsResponse = await rootApi.get('items/allItems');
         setItems(itemsResponse.data);
         
-        // 2. Fetch Cart Data if authenticated
-        const token = await AsyncStorage.getItem('userToken');
-        if (isAuthenticated && token) {
+        if (isAuthenticated) {
             try {
-                const cartResponse = await axios.get('http://192.168.0.217:8080/cart/myCart', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const cartResponse = await rootApi.get('cart/myCart');
 
                 const newCartMap = {};
-                // Map cart items to a map: { menuItemId: { cartItemId, quantity } }
                 if (cartResponse.data.items) {
                     cartResponse.data.items.forEach(item => {
                         newCartMap[item.menuItem.id] = { 
@@ -517,7 +488,6 @@ export default function AllItems() {
                 }
                 setCartMap(newCartMap);
             } catch (cartError) {
-                // Ignore 404/empty cart, but log other errors
                 if (cartError.response && cartError.response.status !== 404) {
                     console.warn('Failed to fetch cart:', cartError);
                 }
@@ -536,12 +506,10 @@ export default function AllItems() {
     }
   };
 
-  // Initial Data Load - TRIGGERS ON isAuthenticated OR cartVersion CHANGE
   useEffect(() => {
     fetchAllItemsAndCart(false);
-  }, [isAuthenticated, cartVersion]); // Dependency on cartVersion ensures sync
+  }, [isAuthenticated, cartVersion]);
   
-  // Pull to Refresh Handler
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchAllItemsAndCart(true); 
@@ -574,7 +542,6 @@ export default function AllItems() {
       <FlatList
         data={items}
         keyExtractor={(item) => item.id.toString()}
-        // Pass cart-related props to CardItem
         renderItem={({ item }) => (
           <CardItem 
             item={item} 
@@ -585,7 +552,6 @@ export default function AllItems() {
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={Platform.OS === 'web' && { gap: 20 }}
         numColumns={Platform.OS === 'web' ? 3 : 1}
-        // ADDED: Pull to refresh control
         refreshControl={
             <RefreshControl 
                 refreshing={refreshing} 
@@ -615,6 +581,7 @@ export default function AllItems() {
       <View style={styles.headerContent}>
         <Text style={styles.title}>Full Menu</Text>
         <Text style={styles.subtitle}>Grab your favorites now!</Text>
+        
       </View>
 
       <View style={styles.listWrapper}>

@@ -10,9 +10,9 @@ import React, {
 interface AuthContextType {
   isAuthenticated: boolean;
   isCheckingAuth: boolean;
-  login: () => Promise<void>;
+  userRole: string | null;
+  login: () => Promise<string | null>;
   logout: () => Promise<void>;
-  // NEW: Cart synchronization
   cartVersion: number;
   refreshCart: () => void;
 }
@@ -26,14 +26,17 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [cartVersion, setCartVersion] = useState(0); // NEW: Cart version tracker
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [cartVersion, setCartVersion] = useState(0);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         const authStatus = await AsyncStorage.getItem('isAuthenticated');
+        const role = await AsyncStorage.getItem('roles');
         if (authStatus === 'true') {
           setIsAuthenticated(true);
+          setUserRole(role);
         }
       } catch (e) {
         console.error('Failed to fetch auth status from storage', e);
@@ -48,10 +51,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async () => {
     try {
       await AsyncStorage.setItem('isAuthenticated', 'true');
+      const role = await AsyncStorage.getItem('roles');
       setIsAuthenticated(true);
-      setCartVersion(v => v + 1); // Refresh cart on login
+      setUserRole(role);
+      setCartVersion(v => v + 1);
+      return role;
     } catch (e) {
       console.error('Failed to save auth status to storage', e);
+      return null;
     }
   };
 
@@ -59,20 +66,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await AsyncStorage.clear();
       setIsAuthenticated(false);
-      setCartVersion(v => v + 1); // Refresh cart on logout
+      setUserRole(null);
+      setCartVersion(v => v + 1);
     } catch (e) {
       console.error('Failed to clear async storage', e);
     }
   };
   
-  // NEW: Function to manually increment cart version, triggering listeners
   const refreshCart = () => {
       setCartVersion(v => v + 1);
   };
 
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, isCheckingAuth, login, logout, cartVersion, refreshCart }} // Added cart logic
+      value={{ 
+        isAuthenticated, 
+        isCheckingAuth, 
+        userRole, 
+        login, 
+        logout, 
+        cartVersion, 
+        refreshCart 
+      }}
     >
       {children}
     </AuthContext.Provider>
