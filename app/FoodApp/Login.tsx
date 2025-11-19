@@ -59,8 +59,6 @@ const Login = () => {
       try {
         const decodedPayload = jwtDecode(token);
 
-        console.log('Decoded Token Payload:', decodedPayload);
-
         for (const key in decodedPayload) {
           if (Object.prototype.hasOwnProperty.call(decodedPayload, key)) {
             const value = String(decodedPayload[key]);
@@ -75,10 +73,9 @@ const Login = () => {
       const role = await login();
 
       if (role === 'ROLE_ADMIN') {
-        // FIX: Removed leading slash
-        router.push('FoodApp/AdminDashboard'); 
+        router.replace('/FoodApp/AdminDashboard');
       } else {
-        router.push('/');
+        router.replace('/');
       }
 
     } catch (error) {
@@ -295,9 +292,9 @@ const styles = StyleSheet.create({
   },
   rightSection: {
     flex: 0.55,
-    margin:"1%",
-    height:"100%",
-    marginRight:"1%",
+    margin: '1%',
+    height: '100%',
+    marginRight: '1%',
     backgroundColor: '#222',
     borderTopLeftRadius: 50,
     borderBottomLeftRadius: 50,
